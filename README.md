@@ -93,6 +93,7 @@ Status: 200 OK
 ####  Request
 `GET /api/user/cars`
 ```
+
 curl -H "Authorization: Bearer <ACCESS_TOKEN>" https://automated-parking-lot.herokuapp.com/api/user/cars
 ```
 ####  Response
