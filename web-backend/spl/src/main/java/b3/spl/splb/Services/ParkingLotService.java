@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ParkingLotService {
-    ParkingLot saveParkingLot(ParkingLot parkingLot);
+    ParkingLot saveParkingLot(ParkingLot parkingLot, String email);
     List<ParkingLot> getParkingLots();
     List<ParkingLot> getClosestParkingLots(Point userLocation);
     Optional<ParkingLot> setApproved(Long id, Boolean approved);
+    void deleteParkingLot(Long id);
+    boolean addParkingSpot(Long lot_id, Long spot_id);
 }

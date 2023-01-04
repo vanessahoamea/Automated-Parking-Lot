@@ -34,7 +34,7 @@ public class ParkingSpotController {
 
     @PostMapping("/parkingspots")
     public ResponseEntity<ParkingSpot> saveParkingSpot(@RequestBody ParkingSpot parkingSpot) {
-        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/parkinglots").toString());
+        URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/save/parkinglot").toString());
         return ResponseEntity.created(uri).body(parkingSpotService.saveParkingSpot(parkingSpot));
     }
     

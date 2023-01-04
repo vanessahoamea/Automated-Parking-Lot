@@ -6,7 +6,7 @@ import b3.spl.splb.model.Car;
 import java.util.List;
 
 public interface CarService {
-    Car saveCar (Car car);
+    Car saveCar (String userEmail, Car car);
     List<Car> getCars (AppUser user);
     boolean deleteCar(Long id);
     Car updateCarLicensePlate (Long carId, String newLicensePlate);

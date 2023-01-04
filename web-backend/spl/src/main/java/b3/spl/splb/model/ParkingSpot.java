@@ -19,4 +19,6 @@ public class ParkingSpot {
     private Long id;
     private boolean available;
     private int type;
+    private int line;
+    private String name;
 }

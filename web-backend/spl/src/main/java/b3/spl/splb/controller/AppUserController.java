@@ -1,8 +1,10 @@
 package b3.spl.splb.controller;
 import b3.spl.splb.Services.AppUserService;
 import b3.spl.splb.model.AppUser;
+import b3.spl.splb.model.Car;
 import b3.spl.splb.model.ParkingLot;
 import b3.spl.splb.model.Role;
+import b3.spl.splb.util.TokenDecoder;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -11,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,13 +39,51 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 @RequestMapping("/api")
 public class AppUserController {
     private final AppUserService appUserService;
+    private final TokenDecoder tokenDecoder = new TokenDecoder();
+
     @GetMapping("/users")
     public ResponseEntity<List<AppUser>> getUsers(){
         return ResponseEntity.ok().body(appUserService.getUsers());
     }
 
+    @GetMapping("/user/profile")
+    public ResponseEntity<AppUser> getUserProfile(@RequestHeader HttpHeaders headers){
+        return ResponseEntity.ok().body(appUserService.getUser(tokenDecoder.getEmailFromToken(headers)));
+    }
+    @DeleteMapping("/user")
+    public ResponseEntity<?> deleteUser(@RequestHeader HttpHeaders headers){
+        try {
+            AppUser user = appUserService.getUser(tokenDecoder.getEmailFromToken(headers));
+            appUserService.deleteUser(user);
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("Could not delete user!");
+        }
+        return  ResponseEntity.ok().body("User deleted successfully!");
+    }
+
+    @PutMapping("user/restepassword")
+    public ResponseEntity<?> updatePassword(@RequestHeader HttpHeaders headers, @RequestBody ObjectNode objectNode){
+
+        try {
+            String oldPassword = objectNode.get("old_password").textValue();
+            String newPassword = objectNode.get("new_password").textValue();
+
+            AppUser user = appUserService.getUser(tokenDecoder.getEmailFromToken(headers));
+            if(!appUserService.checkIfValidOldPassword(user, oldPassword)){
+                throw new  Exception("The old password is incorrect!");
+            }
+            if(!appUserService.changeUserPassword(user, newPassword)){
+                throw new Exception("New password did not meet the complexity requirements!");
+            }
+        }catch (Exception e){
+            return  ResponseEntity.badRequest().body(e.getMessage());
+        }
+        return ResponseEntity.ok().body("Password was changed successfully!");
+    }
+
     @PostMapping("/user/save")
     public ResponseEntity saveUser(@RequestBody AppUser user){
+        System.out.println(user);
         if(user == null || user.getUsername() == null || user.getPassword() == null || user.getName() == null || user.getEmail() == null){
             return ResponseEntity.badRequest().body("Invalid input.");
         }
@@ -57,13 +98,23 @@ public class AppUserController {
             return ResponseEntity.badRequest().body("Invalid password.");
         }
 
-
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/user/save").toString());
         AppUser resp = appUserService.saveUser(user);
         if(resp == null){
             return ResponseEntity.badRequest().body("This email address is already being used.");
         }
         return ResponseEntity.created(uri).body(resp);
+    }
+
+    @PutMapping("/user")
+    public ResponseEntity updateUser(@RequestHeader HttpHeaders httpHeaders, @RequestBody AppUser user) {
+        AppUser updatedUser = appUserService.getUser(tokenDecoder.getEmailFromToken(httpHeaders));
+        try {
+            appUserService.updateUser(updatedUser, user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+        return ResponseEntity.ok().body("User updated!");
     }
 
 
@@ -105,7 +156,7 @@ public class AppUserController {
             }else return ResponseEntity.badRequest().body("Provider not found.");
 
         }
-        return ResponseEntity.badRequest().body("email and banProvider must be provided.");
+        return ResponseEntity.badRequest().body("email zand banProvider must be provided.");
 
     }
 
@@ -157,6 +208,13 @@ public class AppUserController {
                 new ObjectMapper().writeValue(response.getOutputStream(), error);
             }
         }
+    }
+
+    @GetMapping("/user/cars")
+    public ResponseEntity<?> getUserCars(@RequestHeader HttpHeaders headers) {
+        String email = tokenDecoder.getEmailFromToken(headers);
+        List<Car> cars = appUserService.getUserCars(email);
+        return ResponseEntity.ok().body(cars);
     }
 }
 

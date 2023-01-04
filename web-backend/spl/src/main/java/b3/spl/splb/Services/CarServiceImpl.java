@@ -2,6 +2,7 @@ package b3.spl.splb.Services;
 
 import b3.spl.splb.model.AppUser;
 import b3.spl.splb.model.Car;
+import b3.spl.splb.repository.AppUserRepo;
 import b3.spl.splb.repository.CarRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,18 @@ public class CarServiceImpl implements CarService {
     @Autowired
     private final CarRepo carRepo;
 
+    @Autowired
+    private final AppUserRepo appUserRepo;
+
+
     @Override
-    public Car saveCar(Car car)
+    public Car saveCar(String userEmail, Car car)
     {
         log.info("Saving new car {} to the database", car.getLicensePlate());
-        return carRepo.save(car);
+        Car newCar = carRepo.save(car);
+        AppUser appUser = appUserRepo.findByEmail(userEmail);
+        appUser.getCars().add(newCar);
+        return newCar;
     }
 
     @Override
@@ -54,4 +62,5 @@ public class CarServiceImpl implements CarService {
         Optional<Car> car =  carRepo.findById(id);
         return car.orElse(null);
     }
+
 }

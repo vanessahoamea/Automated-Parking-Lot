@@ -9,18 +9,18 @@ import b3.spl.splb.repository.ParkingLotRepo;
 import b3.spl.splb.repository.RoleRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +60,23 @@ public class AppUserServiceImpl implements AppUserService, UserDetailsService {
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return appUserRepo.save(user);
+    }
+
+    @Override
+    public void updateUser(AppUser updatedUser, AppUser user) {
+        if(!Objects.isNull(user.getUsername())) {
+            updatedUser.setUsername(user.getUsername());
+        }
+        if(!Objects.isNull(user.getName())) {
+            updatedUser.setName(user.getName());
+        }
+        if (!Objects.isNull(user.getEmail())) {
+            if(!user.getEmail().matches("[a-zA-Z0-9_\\.-]+@[a-zA-Z0-9]+(\\.[a-zA-Z0-9_-]{2,4})+")){
+                throw new IllegalArgumentException("Invalid email");
+            }
+            updatedUser.setEmail(user.getEmail());
+        }
+
     }
 
     @Override
@@ -126,8 +143,29 @@ public class AppUserServiceImpl implements AppUserService, UserDetailsService {
         return true;
     }
 
+    @Override
+    public List<Car> getUserCars(String email) {
+        return appUserRepo.findByEmail(email).getCars();
+    }
 
 
+    @Override
+    public boolean checkIfValidOldPassword(AppUser user, String oldPassword) {
+        String oldPasswordEnc = appUserRepo.findByEmail(user.getEmail()).getPassword();
+        return passwordEncoder.matches(oldPassword, oldPasswordEnc);
+    }
 
+    @Override
+    public boolean changeUserPassword(AppUser appUser, String newPassword) {
+        if(newPassword.length()<8 || !newPassword.matches(".*[A-Z].*") ||
+                !newPassword.matches(".*[a-z].*") || !newPassword.matches(".*[0-9].*"))
+            return false;
+        appUserRepo.getById(appUser.getId()).setPassword(passwordEncoder.encode(newPassword));
+        return true;
+    }
 
+    @Override
+    public void deleteUser(AppUser user) {
+        appUserRepo.deleteById(user.getId());
+    }
 }
